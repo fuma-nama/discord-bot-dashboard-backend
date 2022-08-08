@@ -1,4 +1,4 @@
-package com.bdash.api.models
+package com.bdash.api.discord.models
 
 @kotlinx.serialization.Serializable
 data class User(

@@ -1,10 +1,13 @@
 package com.bdash.api.plugins
 
 import com.bdash.api.UserSession
+import com.bdash.api.bot.Info
 import com.bdash.api.discord.Routes
+import com.bdash.api.discord.models.Guild
 import com.bdash.api.httpClient
 import com.bdash.api.utils.withSession
 import com.bdash.api.variable.clientUrl
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.server.routing.*
@@ -13,6 +16,8 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 
 fun Application.configureRouting() {
@@ -44,9 +49,17 @@ fun Application.configureRouting() {
                     headers {
                         append(HttpHeaders.Authorization, "${session.token_type} ${session.token}")
                     }
-                }.bodyAsText()
+                }.body<Array<Guild>>()
 
-                call.respondText(guilds)
+                val json = Json.encodeToString(
+                    guilds.filter {
+                        it.exist = Info.jda.getGuildById(it.id) != null
+
+                        it.owner?: false
+                    }
+                )
+
+                call.respondText(json)
             }
         }
 

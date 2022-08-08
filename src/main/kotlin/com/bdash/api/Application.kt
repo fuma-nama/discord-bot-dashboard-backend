@@ -1,5 +1,7 @@
 package com.bdash.api
 
+import com.bdash.api.bot.startBot
+import com.bdash.api.database.DatabaseFactory
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import com.bdash.api.plugins.*
@@ -7,7 +9,6 @@ import com.bdash.api.variable.clientOrigin
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.cookies.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -27,11 +28,14 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
-suspend fun main() {
+fun main() {
+    startBot()
 
     embeddedServer(Netty, port = 8080) {
+        DatabaseFactory.init()
         configureSecurity()
         configureRouting()
+
         install(CORS) {
             allowCredentials = true
             allowHost(clientOrigin)
