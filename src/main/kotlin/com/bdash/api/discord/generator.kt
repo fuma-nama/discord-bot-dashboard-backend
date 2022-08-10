@@ -10,15 +10,12 @@ fun main() {
     val output = StringBuilder()
 
     for (line in input.toList()) {
-        val parsed = line
-            .split("\\s+".toRegex())
-            .filterNot { it == "*" }
-
-        var (name, type) = parsed
-        val description = parsed.drop(2).joinToString(separator = " ")
+        var (name, type, description) = line
+            .split("\t")
 
         val needsDefault = name.endsWith("?")
         val nullable = needsDefault || type.startsWith("?")
+        val isArray = type.startsWith("array of ")
 
         if (needsDefault) {
             name = name.trimEnd('?')
@@ -26,13 +23,26 @@ fun main() {
         if (nullable) {
             type = type.trimStart('?')
         }
+        if (isArray) {
+            type = type.removePrefix("array of ")
+        }
 
-        type = when (type) {
+        type = when (type.lowercase()) {
             "string" -> "String"
             "boolean" -> "Boolean"
             "snowflake" -> "Long"
-            else -> error("Unknown type: $type")
-        } + if (nullable) "?" else ""
+            "integer" -> "Int"
+            else -> "/* $type */"
+        }
+
+        if (isArray) {
+            type = "Array<$type>"
+        }
+
+        if (nullable) {
+            type += "?"
+        }
+
 
         val default = if (needsDefault) " = null" else ""
 
