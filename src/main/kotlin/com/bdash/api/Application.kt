@@ -8,11 +8,13 @@ import com.bdash.api.plugins.*
 import com.bdash.api.variable.clientOrigin
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.util.*
@@ -25,6 +27,10 @@ val httpClient = HttpClient(CIO) {
         json(Json {
             ignoreUnknownKeys = true
         })
+    }
+
+    install(HttpRequestRetry) {
+        retryIf { request, response -> !response.status.isSuccess() }
     }
 }
 
@@ -40,8 +46,16 @@ fun main() {
             allowCredentials = true
             allowHost(clientOrigin)
 
+            allowMethod(HttpMethod.Patch)
+
             allowHeader(HttpHeaders.ContentType)
             allowHeader(HttpHeaders.Authorization)
+        }
+
+        install(ServerContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+            })
         }
 
         install(Sessions) {
