@@ -1,10 +1,14 @@
 package com.bdash.api.plugins
 
 import com.bdash.api.UserSession
-import com.bdash.api.bot.Info
+import com.bdash.api.discord.DiscordApi
 import com.bdash.api.discord.Routes
-import com.bdash.api.discord.models.Guild
 import com.bdash.api.httpClient
+import com.bdash.api.models.options.ExampleValues
+import com.bdash.api.models.options.FeatureDetailExample
+import com.bdash.api.models.options.FeatureExample
+import com.bdash.api.models.options.FeatureOptionExample
+import com.bdash.api.utils.verify
 import com.bdash.api.utils.withSession
 import com.bdash.api.variable.clientUrl
 import io.ktor.client.call.*
@@ -14,6 +18,7 @@ import io.ktor.server.routing.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.encodeToString
@@ -43,23 +48,55 @@ fun Application.configureRouting() {
             }
         }
 
+        get("/guild/{id}") {
+            val id = call.parameters["id"]!!
+
+            withSession { session ->
+                val guild = DiscordApi.getGuild(session, id)
+
+                if (guild == null) {
+                    call.respondText("Guild doesn't Exists", status = HttpStatusCode.NotFound)
+                } else {
+                    call.respond(guild)
+                }
+            }
+        }
+
+        get("/guild/{guild}/features") {
+
+            verify(call.parameters["guild"]!!) {
+                val features = arrayOf(FeatureExample())
+
+                call.respond(features)
+            }
+        }
+
+        get("/guild/{guild}/feature/{id}") {
+
+            verify(call.parameters["guild"]!!) {
+
+                val json = Json.encodeToString(FeatureDetailExample(ExampleValues.value))
+                println(json)
+                call.respond(json)
+            }
+        }
+
+        patch("/guild/{guild}/feature/{id}") {
+
+            verify(call.parameters["guild"]!!) {
+                val value = call.receive<FeatureOptionExample>()
+                ExampleValues.value = value
+
+                println("save $value")
+                call.respond(HttpStatusCode.OK)
+            }
+        }
+
         get("/guilds") {
             withSession { session ->
-                val guilds = httpClient.get(Routes.guilds) {
-                    headers {
-                        append(HttpHeaders.Authorization, "${session.token_type} ${session.token}")
-                    }
-                }.body<Array<Guild>>()
+                val guilds = DiscordApi.getGuildsExists(session)
 
-                val json = Json.encodeToString(
-                    guilds.filter {
-                        it.exist = Info.jda.getGuildById(it.id) != null
-
-                        it.owner?: false
-                    }
-                )
-
-                call.respondText(json)
+                call.respond(guilds)
             }
         }
 
