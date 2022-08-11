@@ -4,10 +4,7 @@ import com.bdash.api.UserSession
 import com.bdash.api.discord.DiscordApi
 import com.bdash.api.discord.Routes
 import com.bdash.api.httpClient
-import com.bdash.api.models.options.ExampleValues
-import com.bdash.api.models.options.FeatureDetailExample
-import com.bdash.api.models.options.FeatureExample
-import com.bdash.api.models.options.FeatureOptionExample
+import com.bdash.api.models.options.*
 import com.bdash.api.utils.verify
 import com.bdash.api.utils.withSession
 import com.bdash.api.variable.clientUrl
@@ -67,7 +64,9 @@ fun Application.configureRouting() {
             verify(call.parameters["guild"]!!) {
                 val features = arrayOf(FeatureExample())
 
-                call.respond(features)
+                call.respond(
+                    Features(features, arrayOf(BetaFeature("AA", 3)))
+                )
             }
         }
 
@@ -75,9 +74,7 @@ fun Application.configureRouting() {
 
             verify(call.parameters["guild"]!!) {
 
-                val json = Json.encodeToString(FeatureDetailExample(ExampleValues.value))
-                println(json)
-                call.respond(json)
+                call.respond(FeatureDetailExample(ExampleValues.value))
             }
         }
 
@@ -125,3 +122,15 @@ fun Application.configureRouting() {
         }
     }
 }
+
+@kotlinx.serialization.Serializable
+class Features(
+    val features: Array<FeatureExample>,
+    val betaFeatures: Array<BetaFeature>
+)
+
+@kotlinx.serialization.Serializable
+class BetaFeature(
+    val name: String,
+    val value: Int
+)
