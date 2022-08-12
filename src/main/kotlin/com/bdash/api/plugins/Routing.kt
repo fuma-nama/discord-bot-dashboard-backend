@@ -18,8 +18,11 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 
 fun Application.configureRouting() {
@@ -62,10 +65,9 @@ fun Application.configureRouting() {
         get("/guild/{guild}/features") {
 
             verify(call.parameters["guild"]!!) {
-                val features = arrayOf(FeatureExample())
 
                 call.respond(
-                    Features(features, arrayOf(BetaFeature("AA", 3)))
+                    Features("auto_kill_kane")
                 )
             }
         }
@@ -81,8 +83,12 @@ fun Application.configureRouting() {
         patch("/guild/{guild}/feature/{id}") {
 
             verify(call.parameters["guild"]!!) {
-                val value = call.receive<FeatureOptionExample>()
-                ExampleValues.value = value
+                val options = Json.decodeFromString<Map<String, String>>(call.receiveText())
+
+                println(options)
+                val value = options["test"]?: ExampleValues.value.test
+                //val value = call.receive<FeatureOptionExample>()
+                ExampleValues.value = FeatureOptionExample(value)
 
                 println("save $value")
                 call.respond(HttpStatusCode.OK)
@@ -125,7 +131,16 @@ fun Application.configureRouting() {
 
 @kotlinx.serialization.Serializable
 class Features(
-    val features: Array<FeatureExample>,
+    val enabled: Array<out String>,
+    val data: FeaturesData
+) {
+    constructor(vararg enabled: String) : this(enabled, FeaturesData(
+        arrayOf(BetaFeature("Hello", 10)))
+    )
+}
+
+@kotlinx.serialization.Serializable
+class FeaturesData(
     val betaFeatures: Array<BetaFeature>
 )
 
