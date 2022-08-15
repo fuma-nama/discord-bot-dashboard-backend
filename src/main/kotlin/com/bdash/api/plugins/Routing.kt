@@ -1,14 +1,20 @@
 package com.bdash.api.plugins
 
 import com.bdash.api.UserSession
+import com.bdash.api.database.dao.ActionDAO
+import com.bdash.api.database.dao.ActionDAO.actionNotFound
+import com.bdash.api.database.dao.ActionDAO.addTask
+import com.bdash.api.database.dao.FeatureDAO
+import com.bdash.api.database.dao.FeatureDAO.setFeatureEnabled
+import com.bdash.api.database.dao.FeatureDAO.updateFeatureOptions
+import com.bdash.api.database.utils.TaskBody
 import com.bdash.api.discord.DiscordApi
 import com.bdash.api.discord.Routes
 import com.bdash.api.httpClient
-import com.bdash.api.models.options.*
+import com.bdash.api.utils.toJsonObject
 import com.bdash.api.utils.verify
 import com.bdash.api.utils.withSession
 import com.bdash.api.variable.clientUrl
-import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.server.routing.*
@@ -18,12 +24,8 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
-
 
 fun Application.configureRouting() {
 
@@ -48,53 +50,6 @@ fun Application.configureRouting() {
             }
         }
 
-        get("/guild/{id}") {
-            val id = call.parameters["id"]!!
-
-            withSession { session ->
-                val guild = DiscordApi.getGuild(session, id)
-
-                if (guild == null) {
-                    call.respondText("Guild doesn't Exists", status = HttpStatusCode.NotFound)
-                } else {
-                    call.respond(guild)
-                }
-            }
-        }
-
-        get("/guild/{guild}/features") {
-
-            verify(call.parameters["guild"]!!) {
-
-                call.respond(
-                    Features("auto_kill_kane")
-                )
-            }
-        }
-
-        get("/guild/{guild}/feature/{id}") {
-
-            verify(call.parameters["guild"]!!) {
-
-                call.respond(FeatureDetailExample(ExampleValues.value))
-            }
-        }
-
-        patch("/guild/{guild}/feature/{id}") {
-
-            verify(call.parameters["guild"]!!) {
-                val options = Json.decodeFromString<Map<String, String>>(call.receiveText())
-
-                println(options)
-                val value = options["test"]?: ExampleValues.value.test
-                //val value = call.receive<FeatureOptionExample>()
-                ExampleValues.value = FeatureOptionExample(value)
-
-                println("save $value")
-                call.respond(HttpStatusCode.OK)
-            }
-        }
-
         get("/guilds") {
             withSession { session ->
                 val guilds = DiscordApi.getGuildsExists(session)
@@ -102,6 +57,8 @@ fun Application.configureRouting() {
                 call.respond(guilds)
             }
         }
+
+        guild()
 
         get("/users/@me") {
             withSession { session ->
@@ -129,23 +86,157 @@ fun Application.configureRouting() {
     }
 }
 
-@kotlinx.serialization.Serializable
-class Features(
-    val enabled: Array<out String>,
-    val data: FeaturesData
-) {
-    constructor(vararg enabled: String) : this(enabled, FeaturesData(
-        arrayOf(BetaFeature("Hello", 10)))
-    )
+fun Route.actions() = route("/action/{action}") {
+    get {
+        val (guild, action) = call["guild", "action"]
+
+        verify(guild) {
+            val detail = ActionDAO.getActionDetail(guild.toLong(), action)
+
+            if (detail == null) {
+                call.actionNotFound()
+            } else {
+                call.respond(detail)
+            }
+        }
+    }
+
+    post {
+        val (guild, action) = call["guild", "action"]
+        val body = call.receive<TaskBody>()
+
+        verify(guild) {
+            addTask(guild.toLong(), action, body.name, body.options)
+        }
+    }
+
+    route("/{task}") {
+        get {
+            val (guild, action, task) = call["guild", "action", "task"]
+
+            verify(guild) {
+                val detail = ActionDAO.getTaskDetail(guild.toLong(), action, task.toInt())
+
+                if (detail == null) {
+                    call.actionNotFound()
+                } else {
+                    call.respond(detail)
+                }
+            }
+        }
+
+        patch {
+            val (guild, action, task) = call["guild", "action", "task"]
+            val payload = call.receive<TaskBody>()
+
+            verify(guild) {
+                val result = ActionDAO.updateTask(
+                    guild.toLong(), action, task.toInt(), payload
+                )
+
+                if (result == null) {
+                    call.actionNotFound()
+                } else {
+                    call.respond(HttpStatusCode.OK)
+                }
+            }
+        }
+
+        delete {
+            val (guild, action, task) = call["guild", "action", "task"]
+
+            verify(guild) {
+                val result = ActionDAO.deleteTask(
+                    guild.toLong(), action, task.toInt()
+                )
+
+                if (result == null) {
+                    call.actionNotFound()
+                } else {
+                    call.respond(HttpStatusCode.OK)
+                }
+            }
+        }
+    }
 }
 
-@kotlinx.serialization.Serializable
-class FeaturesData(
-    val betaFeatures: Array<BetaFeature>
-)
+fun Route.guild() = route("/guild/{guild}") {
+    get {
+        val id = call.parameters["guild"]!!
 
-@kotlinx.serialization.Serializable
-class BetaFeature(
-    val name: String,
-    val value: Int
-)
+        withSession { session ->
+            val guild = DiscordApi.getGuild(session, id)
+
+            if (guild == null) {
+                call.respondText("Guild doesn't Exists", status = HttpStatusCode.NotFound)
+            } else {
+                call.respond(guild)
+            }
+        }
+    }
+
+    get("/features") {
+        val guild = call.parameters["guild"]!!
+
+        verify(guild) {
+            val features = Features(
+                FeatureDAO.getEnabledFeatures(guild.toLong()).toTypedArray()
+            )
+
+            call.respond(features)
+        }
+    }
+
+    features()
+    actions()
+}
+
+fun Route.features() = route("/feature/{id}") {
+    get {
+        val (guild, feature) = call["guild", "id"]
+
+        verify(guild) {
+            val detail = FeatureDAO.getFeature(guild.toLong(), feature)
+
+            if (detail == null) {
+                call.respondText(
+                    "Feature Id doesn't exists",
+                    status = HttpStatusCode.NotFound
+                )
+            } else {
+                call.respond(
+                    Feature(detail.toJsonObject())
+                )
+            }
+        }
+    }
+
+    patch {
+        val (guild, feature) = call["guild", "id"]
+
+        verify(guild) {
+            updateFeatureOptions(guild.toLong(), feature)
+        }
+    }
+
+    patch("/enabled") {
+        val (guild, feature) = call["guild", "id"]
+        val enabled = call.receive<Boolean>()
+
+        verify(guild) {
+            setFeatureEnabled(guild.toLong(), feature, enabled)
+        }
+    }
+}
+
+operator fun ApplicationCall.get(vararg names: String): List<String> {
+    return names.map {
+        parameters[it]!!
+    }
+}
+
+@Serializable
+class Feature(val values: JsonObject)
+
+@Serializable
+class Features(val enabled: Array<String>)
