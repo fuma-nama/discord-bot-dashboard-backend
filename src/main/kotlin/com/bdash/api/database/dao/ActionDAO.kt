@@ -3,6 +3,7 @@ package com.bdash.api.database.dao
 import com.bdash.api.database.DatabaseFactory.dbQuery
 import com.bdash.api.database.models.actions.KillKane
 import com.bdash.api.database.utils.*
+import com.bdash.api.database.utils.returning.updateReturning
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -11,7 +12,6 @@ import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.update
 
 object ActionDAO {
     val actions = arrayOf(KillKane).associateBy { it.actionId }
@@ -61,14 +61,16 @@ object ActionDAO {
     suspend fun updateTask(guild: Long, actionId: String, task: Int, payload: TaskBody) =
         updateTask(guild, actionId, task, payload.name, payload.options)
 
-    suspend fun updateTask(guild: Long, actionId: String, task: Int, name: String, options: JsonObject): Int? {
+    suspend fun updateTask(guild: Long, actionId: String, task: Int, name: String, options: JsonObject): TaskDetail? {
         val action = actions[actionId] ?: return null
 
         return dbQuery {
-            action.update({ action.guild eq guild; action.id eq task }) {
+            val update = action.updateReturning({ action.guild eq guild; action.id eq task }) {
                 it[action.name] = name
                 action.onUpdate(it, options)
             }
+
+            action.detail(update.single())
         }
     }
 

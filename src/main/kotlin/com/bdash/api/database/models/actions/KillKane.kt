@@ -2,13 +2,13 @@ package com.bdash.api.database.models.actions
 
 import com.bdash.api.database.setIf
 import com.bdash.api.database.utils.Action
+import com.bdash.api.database.utils.returning.UpdateReturningStatement
 import com.bdash.api.utils.long
 import com.bdash.api.utils.toJsonElement
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.InsertStatement
-import org.jetbrains.exposed.sql.statements.UpdateStatement
 
 object KillKane : Action("action_kill_kane") {
     override val actionId = "kill_kane"
@@ -21,7 +21,7 @@ object KillKane : Action("action_kill_kane") {
         }
     }
 
-    override fun onUpdate(statement: UpdateStatement, options: JsonObject) {
+    override fun onUpdate(statement: UpdateReturningStatement, options: JsonObject) {
         with(statement) {
             setIf(channel, options["channel"]) { long()!! }
         }

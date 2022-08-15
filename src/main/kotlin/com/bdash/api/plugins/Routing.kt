@@ -17,12 +17,12 @@ import com.bdash.api.utils.withSession
 import com.bdash.api.variable.clientUrl
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.server.routing.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -130,14 +130,14 @@ fun Route.actions() = route("/action/{action}") {
             val payload = call.receive<TaskBody>()
 
             verify(guild) {
-                val result = ActionDAO.updateTask(
+                val updated = ActionDAO.updateTask(
                     guild.toLong(), action, task.toInt(), payload
                 )
 
-                if (result == null) {
+                if (updated == null) {
                     call.actionNotFound()
                 } else {
-                    call.respond(HttpStatusCode.OK)
+                    call.respond(HttpStatusCode.OK, updated)
                 }
             }
         }

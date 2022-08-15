@@ -1,5 +1,6 @@
 package com.bdash.api.database.utils
 
+import com.bdash.api.database.utils.returning.UpdateReturningStatement
 import com.bdash.api.utils.toJsonObject
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
@@ -10,7 +11,6 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentDateTime
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import org.jetbrains.exposed.sql.statements.InsertStatement
-import org.jetbrains.exposed.sql.statements.UpdateStatement
 
 abstract class Action(name: String = "") : Table(name) {
     abstract val actionId: String
@@ -35,7 +35,7 @@ abstract class Action(name: String = "") : Table(name) {
 
     abstract fun onInsert(statement: InsertStatement<*>, options: JsonObject)
 
-    abstract fun onUpdate(statement: UpdateStatement, options: JsonObject)
+    abstract fun onUpdate(statement: UpdateReturningStatement, options: JsonObject)
 
     abstract fun options(self: ResultRow): Map<String, JsonElement>
 }
