@@ -36,3 +36,9 @@ fun Map<*, *>.toJsonObject(): JsonObject {
     }
     return JsonObject(map)
 }
+
+fun JsonElement.string() = jsonPrimitive.contentOrNull
+fun JsonElement.int() = jsonPrimitive.intOrNull
+fun JsonElement.long() = jsonPrimitive.longOrNull
+fun JsonElement.double() = jsonPrimitive.doubleOrNull
+fun JsonElement.boolean() = jsonPrimitive.booleanOrNull
