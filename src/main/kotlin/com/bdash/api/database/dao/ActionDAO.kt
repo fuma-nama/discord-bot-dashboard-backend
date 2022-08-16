@@ -1,9 +1,10 @@
 package com.bdash.api.database.dao
 
 import com.bdash.api.database.DatabaseFactory.dbQuery
-import com.bdash.api.database.models.actions.KillKane
+import com.bdash.api.database.table.actions.KillKane
 import com.bdash.api.database.utils.*
 import com.bdash.api.database.utils.returning.updateReturning
+import com.bdash.api.utils.actionNotFound
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -96,9 +97,5 @@ object ActionDAO {
         return dbQuery {
             action.deleteWhere { action.guild eq guild; action.id eq task }
         }
-    }
-
-    suspend fun ApplicationCall.actionNotFound() {
-        respond(HttpStatusCode.NotFound, "Action Id doesn't exists")
     }
 }

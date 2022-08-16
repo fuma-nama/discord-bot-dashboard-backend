@@ -2,7 +2,7 @@ package com.bdash.api.database
 
 import com.bdash.api.database.dao.ActionDAO
 import com.bdash.api.database.dao.FeatureDAO
-import com.bdash.api.database.models.Settings
+import com.bdash.api.database.table.Settings
 import com.bdash.api.database.utils.returning.UpdateReturningStatement
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.JsonElement

@@ -1,19 +1,16 @@
 package com.bdash.api.plugins
 
 import com.bdash.api.UserSession
-import com.bdash.api.database.dao.ActionDAO
-import com.bdash.api.database.dao.ActionDAO.actionNotFound
-import com.bdash.api.database.dao.ActionDAO.addTask
+import com.bdash.api.bot.Info
 import com.bdash.api.database.dao.FeatureDAO
-import com.bdash.api.database.dao.FeatureDAO.setFeatureEnabled
-import com.bdash.api.database.dao.FeatureDAO.updateFeatureOptions
-import com.bdash.api.database.utils.TaskBody
+import com.bdash.api.database.dao.SettingsDAO
+import com.bdash.api.database.models.Notification
 import com.bdash.api.discord.DiscordApi
 import com.bdash.api.discord.Routes
 import com.bdash.api.httpClient
-import com.bdash.api.utils.toJsonObject
-import com.bdash.api.utils.verify
-import com.bdash.api.utils.withSession
+import com.bdash.api.plugins.routes.actions
+import com.bdash.api.plugins.routes.features
+import com.bdash.api.utils.*
 import com.bdash.api.variable.clientUrl
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -58,8 +55,6 @@ fun Application.configureRouting() {
             }
         }
 
-        guild()
-
         get("/users/@me") {
             withSession { session ->
                 val user = httpClient.get(Routes.user) {
@@ -73,7 +68,7 @@ fun Application.configureRouting() {
         }
 
         head("/auth") {
-            withSession {
+            verify {
                 call.response.status(HttpStatusCode.OK)
             }
         }
@@ -83,80 +78,8 @@ fun Application.configureRouting() {
 
             call.response.status(HttpStatusCode.OK)
         }
-    }
-}
 
-fun Route.actions() = route("/action/{action}") {
-    get {
-        val (guild, action) = call["guild", "action"]
-
-        verify(guild) {
-            val detail = ActionDAO.getActionDetail(guild.toLong(), action)
-
-            if (detail == null) {
-                call.actionNotFound()
-            } else {
-                call.respond(detail)
-            }
-        }
-    }
-
-    post {
-        val (guild, action) = call["guild", "action"]
-        val body = call.receive<TaskBody>()
-
-        verify(guild) {
-            addTask(guild.toLong(), action, body.name, body.options)
-        }
-    }
-
-    route("/{task}") {
-        get {
-            val (guild, action, task) = call["guild", "action", "task"]
-
-            verify(guild) {
-                val detail = ActionDAO.getTaskDetail(guild.toLong(), action, task.toInt())
-
-                if (detail == null) {
-                    call.actionNotFound()
-                } else {
-                    call.respond(detail)
-                }
-            }
-        }
-
-        patch {
-            val (guild, action, task) = call["guild", "action", "task"]
-            val payload = call.receive<TaskBody>()
-
-            verify(guild) {
-                val updated = ActionDAO.updateTask(
-                    guild.toLong(), action, task.toInt(), payload
-                )
-
-                if (updated == null) {
-                    call.actionNotFound()
-                } else {
-                    call.respond(HttpStatusCode.OK, updated)
-                }
-            }
-        }
-
-        delete {
-            val (guild, action, task) = call["guild", "action", "task"]
-
-            verify(guild) {
-                val result = ActionDAO.deleteTask(
-                    guild.toLong(), action, task.toInt()
-                )
-
-                if (result == null) {
-                    call.actionNotFound()
-                } else {
-                    call.respond(HttpStatusCode.OK)
-                }
-            }
-        }
+        guild()
     }
 }
 
@@ -168,7 +91,7 @@ fun Route.guild() = route("/guild/{guild}") {
             val guild = DiscordApi.getGuild(session, id)
 
             if (guild == null) {
-                call.respondText("Guild doesn't Exists", status = HttpStatusCode.NotFound)
+                call.guildNotFound()
             } else {
                 call.respond(guild)
             }
@@ -187,46 +110,89 @@ fun Route.guild() = route("/guild/{guild}") {
         }
     }
 
-    features()
-    actions()
-}
+    get("/detail") {
+        val guildId = call.getGuild()
 
-fun Route.features() = route("/feature/{id}") {
-    get {
-        val (guild, feature) = call["guild", "id"]
+        verify(guildId) {
+            val guild = Info.jda.getGuildById(guildId)
 
-        verify(guild) {
-            val detail = FeatureDAO.getFeature(guild.toLong(), feature)
-
-            if (detail == null) {
-                call.respondText(
-                    "Feature Id doesn't exists",
-                    status = HttpStatusCode.NotFound
-                )
+            if (guild == null) {
+                call.guildNotFound()
             } else {
-                call.respond(
-                    Feature(detail.toJsonObject())
-                )
+                call.respond(ServerDetails(guild.memberCount))
             }
         }
     }
 
-    patch {
-        val (guild, feature) = call["guild", "id"]
+    get("/detail/advanced") {
+        val guildId = call.getGuild()
 
-        verify(guild) {
-            updateFeatureOptions(guild.toLong(), feature)
+        verify(guildId) {
+            val guild = Info.jda.getGuildById(guildId)
+
+            if (guild == null) {
+                call.guildNotFound()
+            } else {
+                call.respond(ServerDetailsAdvanced(guild.memberCount))
+            }
         }
     }
 
-    patch("/enabled") {
-        val (guild, feature) = call["guild", "id"]
-        val enabled = call.receive<Boolean>()
+    get("/notification") {
+        val guildId = call.getGuild()
 
-        verify(guild) {
-            setFeatureEnabled(guild.toLong(), feature, enabled)
+        verify(guildId) {
+            val guild = Info.jda.getGuildById(guildId)!!
+
+            val notifications = arrayOf(
+                Notification(
+                    "Good Job!",
+                    "Your server just got ${guild.memberCount} members",
+                    "https://avatars.githubusercontent.com/u/88699887?s=200&v=4"
+                ),
+                Notification("Good Job!", "Your server just got ${guild.memberCount} members")
+            )
+
+            call.respond(notifications)
         }
     }
+
+    get("/settings") {
+        val guild = call.parameters["guild"]!!
+
+        verify(guild) {
+            val options = SettingsDAO.getSettingOptions(guild.toLong())
+
+            if (options == null) {
+                call.guildNotFound()
+            } else {
+                val settings = Settings(
+                    options.toJsonObject()
+                )
+
+                call.respond(settings)
+            }
+        }
+    }
+
+    patch("/settings") {
+        val guild = call.parameters["guild"]!!
+
+        verify(guild) {
+            val options = call.receive<JsonObject>()
+
+            val updated = SettingsDAO.editSettings(guild.toLong(), options)
+
+            if (updated == null) {
+                call.guildNotFound()
+            } else {
+                call.respond(updated.toJsonObject())
+            }
+        }
+    }
+
+    features()
+    actions()
 }
 
 operator fun ApplicationCall.get(vararg names: String): List<String> {
@@ -239,4 +205,17 @@ operator fun ApplicationCall.get(vararg names: String): List<String> {
 class Feature(val values: JsonObject)
 
 @Serializable
+class Settings(val values: JsonObject)
+
+@Serializable
 class Features(val enabled: Array<String>)
+
+@Serializable
+class ServerDetails(
+    val members: Int,
+)
+
+@Serializable
+class ServerDetailsAdvanced(
+    val members: Int,
+)

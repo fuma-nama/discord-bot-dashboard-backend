@@ -1,7 +1,7 @@
 package com.bdash.api.database.dao
 
 import com.bdash.api.database.DatabaseFactory.dbQuery
-import com.bdash.api.database.models.features.KillKane
+import com.bdash.api.database.table.features.KillKane
 import com.bdash.api.database.utils.Feature
 import com.bdash.api.database.utils.OptionsContainer
 import com.bdash.api.database.utils.OptionsContainerDAO

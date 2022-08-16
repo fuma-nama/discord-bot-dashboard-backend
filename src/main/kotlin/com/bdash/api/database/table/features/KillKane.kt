@@ -1,4 +1,4 @@
-package com.bdash.api.database.models.features
+package com.bdash.api.database.table.features
 
 import com.bdash.api.database.setIf
 import com.bdash.api.database.utils.Feature

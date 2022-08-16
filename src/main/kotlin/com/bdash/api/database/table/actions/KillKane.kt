@@ -1,4 +1,4 @@
-package com.bdash.api.database.models.actions
+package com.bdash.api.database.table.actions
 
 import com.bdash.api.database.setIf
 import com.bdash.api.database.utils.Action
