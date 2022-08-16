@@ -24,7 +24,7 @@ repositories {
 
 dependencies {
     //discord
-    implementation("io.github.sonmoosans:bjda:5.1.0")
+    implementation("io.github.sonmoosans:bjda:5.1.1")
 
     //client
     implementation("io.ktor:ktor-client-core:$ktor_version")
@@ -39,6 +39,7 @@ dependencies {
     implementation("io.ktor:ktor-server-netty-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-cors:$ktor_version")
     implementation("io.ktor:ktor-server-content-negotiation:$ktor_version")
+    implementation("io.ktor:ktor-server-status-pages:$ktor_version")
 
     //debug
     implementation("ch.qos.logback:logback-classic:$logback_version")

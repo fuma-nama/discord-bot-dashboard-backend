@@ -1,7 +1,6 @@
 package com.bdash.api.bot
 
 import bjda.bjda
-import bjda.plugins.IModule
 import bjda.plugins.supercommand.supercommand
 import bjda.plugins.ui.uiEvent
 import bjda.wrapper.Mode
@@ -12,12 +11,12 @@ object Info {
     lateinit var jda: JDA
 }
 
-fun startBot() {
+suspend fun startBot() {
     main()
 }
 
-fun main() {
-    bjda(Mode.Default) {
+suspend fun main() {
+    val bot = bjda(Mode.Default) {
         config {
             setToken(System.getenv("TOKEN"))
         }
@@ -25,11 +24,7 @@ fun main() {
             TestCommands
         )
         uiEvent()
-
-        + object : IModule {
-            override fun init(jda: JDA) {
-                Info.jda = jda
-            }
-        }
     }
+
+    Info.jda = bot.jda
 }
