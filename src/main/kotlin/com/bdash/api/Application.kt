@@ -4,6 +4,7 @@ import com.bdash.api.bot.startBot
 import com.bdash.api.database.DatabaseFactory
 import com.bdash.api.plugins.configureRouting
 import com.bdash.api.plugins.configureSecurity
+import com.bdash.api.utils.APIException
 import com.bdash.api.variable.clientOrigin
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -16,6 +17,8 @@ import io.ktor.server.auth.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.response.*
 import io.ktor.server.sessions.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
@@ -31,11 +34,11 @@ val httpClient = HttpClient(CIO) {
     }
 
     install(HttpRequestRetry) {
-        retryIf { request, response -> !response.status.isSuccess() }
+        retryIf { _, response -> !response.status.isSuccess() }
     }
 }
 
-fun main() {
+suspend fun main() {
     startBot()
 
     embeddedServer(Netty, port = 8080) {
@@ -52,6 +55,12 @@ fun main() {
 
             allowHeader(HttpHeaders.ContentType)
             allowHeader(HttpHeaders.Authorization)
+        }
+
+        install(StatusPages) {
+            exception<APIException> { call, ex ->
+                call.respond(ex.code, ex.message.orEmpty())
+            }
         }
 
         install(ServerContentNegotiation) {
