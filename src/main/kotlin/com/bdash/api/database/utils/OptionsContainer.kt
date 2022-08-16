@@ -1,7 +1,6 @@
 package com.bdash.api.database.utils
 
 import com.bdash.api.database.utils.returning.UpdateReturningStatement
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.sql.ResultRow
@@ -23,6 +22,3 @@ abstract class OptionsContainer(name: String = "") : Table(name) {
 
     abstract fun options(self: ResultRow): Map<String, JsonElement>
 }
-
-@Serializable
-data class FeaturePayload(val values: JsonElement)

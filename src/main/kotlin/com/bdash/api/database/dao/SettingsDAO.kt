@@ -1,35 +1,57 @@
 package com.bdash.api.database.dao
 
 import com.bdash.api.database.DatabaseFactory.dbQuery
-import com.bdash.api.database.models.Setting
-import com.bdash.api.database.models.Settings
+import com.bdash.api.database.table.Settings
+import com.bdash.api.database.utils.OptionsContainer
+import com.bdash.api.database.utils.OptionsContainerDAO
+import com.bdash.api.database.utils.returning.updateReturning
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.update
 
-object SettingsDAO {
-    suspend fun get(id: Long): Setting? = dbQuery {
-        Settings.select { Settings.id eq id }
-            .map(::toModel)
-            .singleOrNull()
+object SettingsDAO : OptionsContainerDAO {
+    suspend fun getSettingOptions(guild: Long): Map<String, JsonElement>? {
+        return Settings.getOptions(guild)
     }
 
-    suspend fun addSettings(id: Long, say: String): Setting? = dbQuery {
-        val insertStatement = Settings.insert {
-            it[this.id] = id
+    override suspend fun OptionsContainer.getOptions(guild: Long): Map<String, JsonElement>? {
+        return getSettings(guild)?.let(Settings::options)
+    }
+
+    suspend fun getSettings(guild: Long): ResultRow? {
+        val settings = dbQuery {
+            Settings.select { Settings.guild eq guild }
+                .singleOrNull()
         }
 
-        insertStatement.resultedValues?.singleOrNull()?.let(::toModel)
+        return settings ?: initSettings(guild)
     }
 
-    suspend fun editSettings(id: Long, say: String): Boolean = dbQuery {
-        Settings.update({ Settings.id eq id }) {
-            it[Settings.say] = say
-        } > 0
+    suspend fun initSettings(guild: Long, options: JsonObject? = null) = dbQuery {
+        val insert = Settings.insertIgnore {
+            it[this.guild] = guild
+
+            if (options != null) {
+                onInsert(it, options)
+            }
+        }
+        insert.resultedValues?.singleOrNull()
     }
 
-    fun toModel(result: ResultRow): Setting {
-        return Setting(result[Settings.id], result[Settings.say])
+    suspend fun editSettings(guild: Long, options: JsonObject): Map<String, JsonElement>? {
+        println(options)
+
+        val update = dbQuery {
+            Settings.updateReturning({ Settings.guild eq guild }) {
+                it[Settings.guild] = guild
+
+                onUpdate(it, options)
+            }.singleOrNull()
+        }
+
+        return (update ?: initSettings(guild, options))
+            ?.let(Settings::options)
     }
 }
