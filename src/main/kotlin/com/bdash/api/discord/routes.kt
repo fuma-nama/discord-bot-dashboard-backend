@@ -5,4 +5,5 @@ object Routes {
 
     val user = "$url/users/@me"
     val guilds = "$url/users/@me/guilds"
+    val verify = "$url/oauth2/@me"
 }
