@@ -1,9 +1,9 @@
 package com.bdash.api.discord
 
+import com.bdash.api.Guild
+import com.bdash.api.GuildExists
 import com.bdash.api.UserSession
 import com.bdash.api.bot.Info
-import com.bdash.api.discord.models.Guild
-import com.bdash.api.discord.models.GuildExists
 import com.bdash.api.httpClient
 import com.bdash.api.utils.toError
 import io.ktor.client.call.*

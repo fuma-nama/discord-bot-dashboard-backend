@@ -1,9 +1,9 @@
 package com.bdash.api.plugins.routes
 
+import com.bdash.api.Feature
 import com.bdash.api.database.dao.FeatureDAO
 import com.bdash.api.database.dao.FeatureDAO.setFeatureEnabled
 import com.bdash.api.database.dao.FeatureDAO.updateFeatureOptions
-import com.bdash.api.plugins.Feature
 import com.bdash.api.plugins.get
 import com.bdash.api.utils.featureNotFound
 import com.bdash.api.utils.toJsonObject

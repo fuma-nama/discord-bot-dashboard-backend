@@ -1,9 +1,9 @@
 package com.bdash.api.database.utils
 
+import com.bdash.api.TaskDetail
+import com.bdash.api.TaskInfo
 import com.bdash.api.database.utils.returning.UpdateReturningStatement
 import com.bdash.api.utils.toJsonObject
-import kotlinx.datetime.LocalDateTime
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.sql.ResultRow
@@ -39,29 +39,3 @@ abstract class Action(name: String = "") : Table(name) {
 
     abstract fun options(self: ResultRow): Map<String, JsonElement>
 }
-
-@Serializable
-class TaskBody(
-    val name: String,
-    val options: JsonObject,
-)
-
-@Serializable
-class TaskDetail(
-    val id: Int,
-    val name: String,
-    val createdAt: LocalDateTime,
-    val values: JsonObject,
-)
-
-@Serializable
-class TaskInfo(
-    val id: Int,
-    val name: String,
-    val createdAt: LocalDateTime,
-)
-
-@Serializable
-class ActionDetail(
-    val tasks: List<TaskInfo>,
-)

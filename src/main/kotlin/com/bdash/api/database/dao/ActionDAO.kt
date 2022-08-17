@@ -1,8 +1,12 @@
 package com.bdash.api.database.dao
 
+import com.bdash.api.ActionDetail
+import com.bdash.api.TaskBody
+import com.bdash.api.TaskDetail
+import com.bdash.api.TaskInfo
 import com.bdash.api.database.DatabaseFactory.dbQuery
 import com.bdash.api.database.table.actions.KillKane
-import com.bdash.api.database.utils.*
+import com.bdash.api.database.utils.Action
 import com.bdash.api.database.utils.returning.updateReturning
 import com.bdash.api.utils.actionNotFound
 import io.ktor.http.*
@@ -62,12 +66,15 @@ object ActionDAO {
     suspend fun updateTask(guild: Long, actionId: String, task: Int, payload: TaskBody) =
         updateTask(guild, actionId, task, payload.name, payload.options)
 
-    suspend fun updateTask(guild: Long, actionId: String, task: Int, name: String, options: JsonObject): TaskDetail? {
+    suspend fun updateTask(guild: Long, actionId: String, task: Int, name: String?, options: JsonObject): TaskDetail? {
         val action = actions[actionId] ?: return null
 
         return dbQuery {
             val update = action.updateReturning({ action.guild eq guild; action.id eq task }) {
-                it[action.name] = name
+                if (name != null) {
+                    it[action.name] = name
+                }
+
                 action.onUpdate(it, options)
             }
 

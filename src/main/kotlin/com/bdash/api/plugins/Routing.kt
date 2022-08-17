@@ -1,13 +1,11 @@
 package com.bdash.api.plugins
 
-import com.bdash.api.UserSession
+import com.bdash.api.*
 import com.bdash.api.bot.Info
 import com.bdash.api.database.dao.FeatureDAO
 import com.bdash.api.database.dao.SettingsDAO
-import com.bdash.api.database.models.Notification
 import com.bdash.api.discord.DiscordApi
 import com.bdash.api.discord.Routes
-import com.bdash.api.httpClient
 import com.bdash.api.plugins.routes.actions
 import com.bdash.api.plugins.routes.features
 import com.bdash.api.utils.*
@@ -17,7 +15,6 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
@@ -27,10 +24,6 @@ import kotlinx.serialization.json.JsonObject
 fun Application.configureRouting() {
 
     routing {
-        get("/") {
-            call.respondText("Hello World!")
-        }
-
         authenticate("discord-oauth2") {
             get("/login") {
                 // Redirects to 'authorizeUrl' automatically
@@ -73,7 +66,7 @@ fun Application.configureRouting() {
             }
         }
 
-        get("/auth/signout") {
+        post("/auth/signout") {
             call.sessions.clear<UserSession>()
 
             call.response.status(HttpStatusCode.OK)
@@ -175,11 +168,10 @@ fun Route.guild() = route("/guild/{guild}") {
         }
     }
 
-    patch("/settings") {
+    patch<JsonObject>("/settings") { options ->
         val guild = call.parameters["guild"]!!
 
         verify(guild) {
-            val options = call.receive<JsonObject>()
 
             val updated = SettingsDAO.editSettings(guild.toLong(), options)
 
@@ -200,15 +192,6 @@ operator fun ApplicationCall.get(vararg names: String): List<String> {
         parameters[it]!!
     }
 }
-
-@Serializable
-class Feature(val values: JsonObject)
-
-@Serializable
-class Settings(val values: JsonObject)
-
-@Serializable
-class Features(val enabled: Array<String>)
 
 @Serializable
 class ServerDetails(
