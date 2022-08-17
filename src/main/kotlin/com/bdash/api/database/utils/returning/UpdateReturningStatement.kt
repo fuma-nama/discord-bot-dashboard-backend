@@ -20,10 +20,13 @@ class UpdateReturningStatement(
             +"UPDATE "
             table.describe(transaction, this)
 
-            firstDataSet.appendTo(this, prefix = " SET ") { (col, value) ->
-                append("${transaction.identity(col)}=")
-                registerArgument(col, value)
+            if (firstDataSet.isNotEmpty()) {
+                firstDataSet.appendTo(this, prefix = " SET ") { (col, value) ->
+                    append("${transaction.identity(col)}=")
+                    registerArgument(col, value)
+                }
             }
+
 
             where?.let {
                 +" WHERE "

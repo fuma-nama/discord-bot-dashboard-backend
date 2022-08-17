@@ -1,14 +1,13 @@
 package com.bdash.api.plugins.routes
 
+import com.bdash.api.TaskBody
 import com.bdash.api.database.dao.ActionDAO
 import com.bdash.api.database.dao.ActionDAO.addTask
-import com.bdash.api.database.utils.TaskBody
 import com.bdash.api.plugins.get
 import com.bdash.api.utils.actionNotFound
 import com.bdash.api.utils.verify
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -27,12 +26,15 @@ fun Route.actions() = route("/action/{action}") {
         }
     }
 
-    post {
+    post<TaskBody> { body ->
         val (guild, action) = call["guild", "action"]
-        val body = call.receive<TaskBody>()
 
         verify(guild) {
-            addTask(guild.toLong(), action, body.name, body.options)
+            if (body.name == null) {
+                call.respond(HttpStatusCode.BadRequest, "Name is missing")
+            }
+
+            addTask(guild.toLong(), action, body.name!!, body.options)
         }
     }
 
@@ -51,13 +53,12 @@ fun Route.actions() = route("/action/{action}") {
             }
         }
 
-        patch {
+        patch<TaskBody> { body ->
             val (guild, action, task) = call["guild", "action", "task"]
-            val payload = call.receive<TaskBody>()
 
             verify(guild) {
                 val updated = ActionDAO.updateTask(
-                    guild.toLong(), action, task.toInt(), payload
+                    guild.toLong(), action, task.toInt(), body
                 )
 
                 if (updated == null) {
