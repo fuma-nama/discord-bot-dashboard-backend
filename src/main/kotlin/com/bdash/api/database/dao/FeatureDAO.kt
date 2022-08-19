@@ -1,7 +1,6 @@
 package com.bdash.api.database.dao
 
 import com.bdash.api.database.DatabaseFactory.dbQuery
-import com.bdash.api.database.table.features.KillKane
 import com.bdash.api.database.utils.Feature
 import com.bdash.api.database.utils.OptionsContainer
 import com.bdash.api.database.utils.OptionsContainerDAO
@@ -15,8 +14,13 @@ import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.select
 
 object FeatureDAO : OptionsContainerDAO {
-    val features = arrayOf<Feature>(KillKane)
-        .associateBy { it.id }
+    val features = hashMapOf<String, Feature>()
+
+    fun register(features: List<Feature>) {
+        for (feature in features) {
+            this.features[feature.id] = feature
+        }
+    }
 
     suspend fun getFeature(guild: Long, featureId: String): Map<String, JsonElement>? {
         return features[featureId]?.getOptions(guild)

@@ -5,7 +5,6 @@ import com.bdash.api.TaskBody
 import com.bdash.api.TaskDetail
 import com.bdash.api.TaskInfo
 import com.bdash.api.database.DatabaseFactory.dbQuery
-import com.bdash.api.database.table.actions.KillKane
 import com.bdash.api.database.utils.Action
 import com.bdash.api.database.utils.returning.updateReturning
 import com.bdash.api.utils.actionNotFound
@@ -19,7 +18,13 @@ import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
 
 object ActionDAO {
-    val actions = arrayOf(KillKane).associateBy { it.actionId }
+    val actions = hashMapOf<String, Action>()
+
+    fun register(actions: List<Action>) {
+        for (action in actions) {
+            this.actions[action.actionId] = action
+        }
+    }
 
     suspend fun getActionDetail(guild: Long, actionId: String): ActionDetail? {
         val tasks = getTasks(guild, actionId) ?: return null

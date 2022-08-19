@@ -1,10 +1,10 @@
-package com.bdash.api.bot.command
+package net.sonmoosans.kbot.command
 
 import bjda.plugins.supercommand.SuperCommandGroup
 import com.bdash.api.database.dao.SettingsDAO
-import com.bdash.api.database.table.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.asCoroutineDispatcher
+import net.sonmoosans.kbot.database.table.BotSettings
 import java.util.concurrent.Executors
 
 object EventCoroutine : CoroutineScope {
@@ -18,7 +18,7 @@ val TestCommands = SuperCommandGroup.create("test", "Test commands", guildOnly =
         execute(EventCoroutine) {
             val guild = SettingsDAO.getSettings(event.guild!!.idLong)
 
-            event.reply(guild?.get(Settings.say) ?: "Unknown").queue()
+            event.reply(guild?.get(BotSettings.say) ?: "Unknown").queue()
         }
     }
 }

@@ -1,7 +1,6 @@
 package com.bdash.api.plugins
 
 import com.bdash.api.*
-import com.bdash.api.bot.Info
 import com.bdash.api.database.dao.FeatureDAO
 import com.bdash.api.database.dao.SettingsDAO
 import com.bdash.api.discord.DiscordApi
@@ -9,7 +8,6 @@ import com.bdash.api.discord.Routes
 import com.bdash.api.plugins.routes.actions
 import com.bdash.api.plugins.routes.features
 import com.bdash.api.utils.*
-import com.bdash.api.variable.clientUrl
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -20,8 +18,9 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import net.dv8tion.jda.api.JDA
 
-fun Application.configureRouting() {
+fun Application.configureRouting(bot: BotBuilder, oauth: OAuthBuilder) {
 
     routing {
         authenticate("discord-oauth2") {
@@ -36,7 +35,7 @@ fun Application.configureRouting() {
                     call.sessions.set(UserSession(principal.accessToken, principal.tokenType))
                 }
 
-                call.respondRedirect(clientUrl)
+                call.respondRedirect(oauth.redirect)
             }
         }
 
@@ -72,11 +71,11 @@ fun Application.configureRouting() {
             call.response.status(HttpStatusCode.OK)
         }
 
-        guild()
+        guild(bot.jda)
     }
 }
 
-fun Route.guild() = route("/guild/{guild}") {
+fun Route.guild(jda: JDA) = route("/guild/{guild}") {
     get {
         val id = call.parameters["guild"]!!
 
@@ -107,7 +106,7 @@ fun Route.guild() = route("/guild/{guild}") {
         val guildId = call.getGuild()
 
         verify(guildId) {
-            val guild = Info.jda.getGuildById(guildId)
+            val guild = jda.getGuildById(guildId)
 
             if (guild == null) {
                 call.guildNotFound()
@@ -121,7 +120,7 @@ fun Route.guild() = route("/guild/{guild}") {
         val guildId = call.getGuild()
 
         verify(guildId) {
-            val guild = Info.jda.getGuildById(guildId)
+            val guild = jda.getGuildById(guildId)
 
             if (guild == null) {
                 call.guildNotFound()
@@ -135,7 +134,7 @@ fun Route.guild() = route("/guild/{guild}") {
         val guildId = call.getGuild()
 
         verify(guildId) {
-            val guild = Info.jda.getGuildById(guildId)!!
+            val guild = jda.getGuildById(guildId)!!
 
             val notifications = arrayOf(
                 Notification(

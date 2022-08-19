@@ -1,11 +1,13 @@
 package com.bdash.api
 
-import com.bdash.api.bot.startBot
 import com.bdash.api.database.DatabaseFactory
+import com.bdash.api.database.utils.Action
+import com.bdash.api.database.utils.Feature
+import com.bdash.api.database.utils.Settings
+import com.bdash.api.discord.DiscordApi
 import com.bdash.api.plugins.configureRouting
 import com.bdash.api.plugins.configureSecurity
 import com.bdash.api.utils.APIException
-import com.bdash.api.variable.clientOrigin
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
@@ -22,6 +24,8 @@ import io.ktor.server.response.*
 import io.ktor.server.sessions.*
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
+import net.dv8tion.jda.api.JDA
+import org.jetbrains.exposed.sql.Database
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
@@ -38,17 +42,21 @@ val httpClient = HttpClient(CIO) {
     }
 }
 
-suspend fun main() {
-    startBot()
+suspend fun startServer(init: Configuration.() -> Unit) {
+    val config = Configuration().apply(init)
+    val auth = OAuthBuilder().apply(config.oauth)
+    val encrypt = EncryptBuilder().apply(config.encrypt)
+    val bot = BotBuilder().apply(config.bot)
 
     embeddedServer(Netty, port = 8080) {
-        DatabaseFactory.init()
+        DiscordApi.init(bot.jda)
+        DatabaseFactory.init(config)
         configureSecurity()
-        configureRouting()
+        configureRouting(bot, auth)
 
         install(CORS) {
             allowCredentials = true
-            allowHost(clientOrigin)
+            allowHost(config.clientOrigin)
 
             allowMethod(HttpMethod.Patch)
             allowMethod(HttpMethod.Delete)
@@ -70,34 +78,91 @@ suspend fun main() {
         }
 
         install(Sessions) {
+
             cookie<UserSession>("user_session") {
-                val secretEncryptKey = hex(System.getenv("ENCRYPT_KEY"))
-                val secretSignKey = hex(System.getenv("SIGN_KEY"))
+                val secretEncryptKey = hex(encrypt.encryptKey)
+                val secretSignKey = hex(encrypt.signKey)
 
                 cookie.path = "/"
-                cookie.maxAge = 3.toDuration(DurationUnit.DAYS)
+                cookie.maxAge = encrypt.cookieExpire
                 transform(SessionTransportTransformerEncrypt(secretEncryptKey, secretSignKey))
             }
         }
 
         install(Authentication) {
+
             oauth("discord-oauth2") {
-                urlProvider = { "http://localhost:8080/callback" }
+                urlProvider = { "${config.host}/callback" }
                 providerLookup = {
                     OAuthServerSettings.OAuth2ServerSettings(
                         name = "discord",
                         authorizeUrl = "https://discord.com/api/oauth2/authorize",
                         accessTokenUrl = "https://discord.com/api/oauth2/token",
                         requestMethod = HttpMethod.Post,
-                        clientId = System.getenv("CLIENT_ID"),
-                        clientSecret = System.getenv("CLIENT_SECRET"),
-                        defaultScopes = listOf("guilds", "identify")
+                        clientId = auth.clientId,
+                        clientSecret = auth.clientSecret,
+                        defaultScopes = auth.scopes
                     )
                 }
                 client = httpClient
             }
         }
     }.start(wait = true)
+}
+
+@DslMarker
+annotation class DslBuilder
+
+@DslBuilder
+class Configuration {
+    val features = arrayListOf<Feature>()
+    val actions = arrayListOf<Action>()
+    lateinit var settings: Settings
+
+    fun action(vararg actions: Action) {
+        this.actions.addAll(actions)
+    }
+
+    fun feature(vararg features: Feature) {
+        this.features.addAll(features)
+    }
+
+    /**
+     * Server Url
+     */
+    lateinit var host: String
+
+    /**
+     * Client origin
+     */
+    lateinit var clientOrigin: String
+    lateinit var connect: () -> Database
+    lateinit var oauth: OAuthBuilder.() -> Unit
+    lateinit var encrypt: EncryptBuilder.() -> Unit
+    lateinit var bot: BotBuilder.() -> Unit
+}
+
+@DslBuilder
+class BotBuilder {
+    lateinit var jda: JDA
+}
+
+@DslBuilder
+class EncryptBuilder {
+    lateinit var signKey: String
+    lateinit var encryptKey: String
+    var cookieExpire = 3.toDuration(DurationUnit.DAYS)
+}
+
+@DslBuilder
+class OAuthBuilder {
+    /**
+     * Url to redirect after login (should be client url)
+     */
+    lateinit var redirect: String
+    lateinit var clientId: String
+    lateinit var clientSecret: String
+    val scopes = arrayListOf("guilds", "identify")
 }
 
 data class UserSession(val token: String, val token_type: String)

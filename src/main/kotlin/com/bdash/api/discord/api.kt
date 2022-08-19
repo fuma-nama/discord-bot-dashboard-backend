@@ -3,15 +3,21 @@ package com.bdash.api.discord
 import com.bdash.api.Guild
 import com.bdash.api.GuildExists
 import com.bdash.api.UserSession
-import com.bdash.api.bot.Info
 import com.bdash.api.httpClient
 import com.bdash.api.utils.toError
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
+import net.dv8tion.jda.api.JDA
 
 object DiscordApi {
+    private lateinit var jda: JDA
+
+    fun init(jda: JDA) {
+        this.jda = jda
+    }
+
     suspend fun getGuild(user: UserSession, id: String): Guild? {
         return getGuilds(user).find { it.id == id }
     }
@@ -54,7 +60,7 @@ object DiscordApi {
             val guilds = res.body<Array<GuildExists>>()
 
             guilds.filter {
-                it.exist = Info.jda.getGuildById(it.id) != null
+                it.exist = jda.getGuildById(it.id) != null
 
                 it.owner ?: false
             }

@@ -1,35 +1,33 @@
-package com.bdash.api.database.table.actions
+package net.sonmoosans.kbot.database.table
 
 import com.bdash.api.database.setIf
-import com.bdash.api.database.utils.Action
+import com.bdash.api.database.utils.Settings
 import com.bdash.api.database.utils.returning.UpdateReturningStatement
-import com.bdash.api.utils.long
+import com.bdash.api.utils.string
 import com.bdash.api.utils.toJsonElement
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.statements.InsertStatement
+import org.jetbrains.exposed.sql.statements.UpdateBuilder
 
-object KillKane : Action("action_kill_kane") {
-    override val actionId = "kill_kane"
+object BotSettings : Settings() {
+    val say = varchar("body", 1024).default("Hello World")
 
-    val channel = long("channel")
-
-    override fun onInsert(statement: InsertStatement<*>, options: JsonObject) {
+    override fun onInsert(statement: UpdateBuilder<*>, options: JsonObject) {
         with(statement) {
-            setIf(channel, options["channel"]) { long()!! }
+            setIf(say, options["say"]) { string().orEmpty() }
         }
     }
 
     override fun onUpdate(statement: UpdateReturningStatement, options: JsonObject) {
         with(statement) {
-            setIf(channel, options["channel"]) { long()!! }
+            setIf(say, options["say"]) { string().orEmpty() }
         }
     }
 
     override fun options(self: ResultRow): Map<String, JsonElement> {
         return mapOf(
-            "channel" to self[channel].toJsonElement()
+            "say" to self[say].toJsonElement()
         )
     }
 }
