@@ -56,7 +56,10 @@ suspend fun startServer(init: Configuration.() -> Unit) {
 
         install(CORS) {
             allowCredentials = true
-            allowHost(config.clientOrigin)
+
+            for (host in config.allowHost) {
+                allowHost(host)
+            }
 
             allowMethod(HttpMethod.Patch)
             allowMethod(HttpMethod.Delete)
@@ -132,10 +135,11 @@ class Configuration {
      */
     lateinit var host: String
 
+    val allowHost = arrayListOf<String>()
+
     /**
      * Client origin
      */
-    lateinit var clientOrigin: String
     lateinit var connect: () -> Database
     lateinit var oauth: OAuthBuilder.() -> Unit
     lateinit var encrypt: EncryptBuilder.() -> Unit

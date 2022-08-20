@@ -174,11 +174,7 @@ fun Route.guild(jda: JDA) = route("/guild/{guild}") {
 
             val updated = SettingsDAO.editSettings(guild.toLong(), options)
 
-            if (updated == null) {
-                call.guildNotFound()
-            } else {
-                call.respond(updated.toJsonObject())
-            }
+            call.respond(updated.toJsonObject())
         }
     }
 

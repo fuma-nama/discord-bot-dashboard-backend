@@ -46,7 +46,7 @@ suspend fun main() {
         }
 
         host = "http://localhost:8080"
-        clientOrigin = "localhost:3000"
+        allowHost += "localhost:3000"
 
         oauth = {
             clientId = System.getenv("CLIENT_ID")

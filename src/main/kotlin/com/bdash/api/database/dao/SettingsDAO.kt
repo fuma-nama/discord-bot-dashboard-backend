@@ -26,7 +26,7 @@ object SettingsDAO : OptionsContainerDAO {
         return getSettings(guild)?.let(table::options)
     }
 
-    suspend fun getSettings(guild: Long): ResultRow? {
+    suspend fun getSettings(guild: Long): ResultRow {
         val settings = dbQuery {
             table.select { table.guild eq guild }
                 .singleOrNull()
@@ -43,10 +43,10 @@ object SettingsDAO : OptionsContainerDAO {
                 onInsert(it, options)
             }
         }
-        insert.resultedValues?.singleOrNull()
+        insert.resultedValues!!.single()
     }
 
-    suspend fun editSettings(guild: Long, options: JsonObject): Map<String, JsonElement>? {
+    suspend fun editSettings(guild: Long, options: JsonObject): Map<String, JsonElement> {
 
         val update = dbQuery {
             table.updateReturning({ table.guild eq guild }) {
@@ -56,7 +56,6 @@ object SettingsDAO : OptionsContainerDAO {
             }.singleOrNull()
         }
 
-        return (update ?: initSettings(guild, options))
-            ?.let(table::options)
+        return (update ?: initSettings(guild, options)).let(table::options)
     }
 }
