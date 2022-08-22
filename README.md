@@ -35,6 +35,10 @@ ___
 
 * Returns: `Guild`
 
+&nbsp; GET `actions`: Get actions data of the guild, won't be called if `config.data.actions` is null
+
+* Returns: `any`, You can define your own Action Data type
+
 &nbsp; GET `features`: Get features data of the guild
 
 * Returns: `Features`
