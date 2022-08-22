@@ -23,6 +23,8 @@ suspend fun main() {
     }
 
     startServer {
+        api = APIImpl()
+
         action(
             KillKaneAction
         )

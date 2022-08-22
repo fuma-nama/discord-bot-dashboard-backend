@@ -64,4 +64,6 @@ suspend inline fun PipelineContext<Unit, ApplicationCall>.verify(guildId: String
 
 suspend fun HttpResponse.toError() = APIException(status, body<Error>().message)
 
+fun apiError(code: HttpStatusCode, message: String): Nothing = throw APIException(code, message)
+
 class APIException(val code: HttpStatusCode, message: String) : Exception(message)

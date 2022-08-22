@@ -47,12 +47,13 @@ suspend fun startServer(init: Configuration.() -> Unit) {
     val auth = OAuthBuilder().apply(config.oauth)
     val encrypt = EncryptBuilder().apply(config.encrypt)
     val bot = BotBuilder().apply(config.bot)
+    val api = config.api
 
     embeddedServer(Netty, port = 8080) {
         DiscordApi.init(bot.jda)
         DatabaseFactory.init(config)
         configureSecurity()
-        configureRouting(bot, auth)
+        configureRouting(auth, api)
 
         install(CORS) {
             allowCredentials = true
@@ -76,6 +77,7 @@ suspend fun startServer(init: Configuration.() -> Unit) {
 
         install(ServerContentNegotiation) {
             json(Json {
+                encodeDefaults = true
                 ignoreUnknownKeys = true
             })
         }
@@ -118,6 +120,7 @@ annotation class DslBuilder
 
 @DslBuilder
 class Configuration {
+    lateinit var api: API
     val features = arrayListOf<Feature>()
     val actions = arrayListOf<Action>()
     lateinit var settings: Settings

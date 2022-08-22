@@ -2,6 +2,7 @@ package com.bdash.api
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 @Serializable
@@ -73,7 +74,7 @@ class Notification(
 )
 
 @Serializable
-class Features(val enabled: Array<String>)
+class Features(val enabled: Array<String>, val data: JsonElement? = null)
 
 @Serializable
 class Feature(val values: JsonObject)

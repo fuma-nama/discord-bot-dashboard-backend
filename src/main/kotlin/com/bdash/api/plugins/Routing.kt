@@ -16,11 +16,9 @@ import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
-import net.dv8tion.jda.api.JDA
 
-fun Application.configureRouting(bot: BotBuilder, oauth: OAuthBuilder) {
+fun Application.configureRouting(oauth: OAuthBuilder, api: API) {
 
     routing {
         authenticate("discord-oauth2") {
@@ -71,11 +69,11 @@ fun Application.configureRouting(bot: BotBuilder, oauth: OAuthBuilder) {
             call.response.status(HttpStatusCode.OK)
         }
 
-        guild(bot.jda)
+        guild(api)
     }
 }
 
-fun Route.guild(jda: JDA) = route("/guild/{guild}") {
+fun Route.guild(api: API) = route("/guild/{guild}") {
     get {
         val id = call.parameters["guild"]!!
 
@@ -90,12 +88,25 @@ fun Route.guild(jda: JDA) = route("/guild/{guild}") {
         }
     }
 
-    get("/features") {
-        val guild = call.parameters["guild"]!!
+    get("/actions") {
+        val guild = call.getGuild()
 
         verify(guild) {
+            val data = with(api) { getActionsData(guild) }
+
+            if (data != null)
+                call.respond(data)
+        }
+    }
+
+    get("/features") {
+        val guild = call.getGuild()
+
+        verify(guild) {
+            val data = with(api) { getFeaturesData(guild) }
             val features = Features(
-                FeatureDAO.getEnabledFeatures(guild.toLong()).toTypedArray()
+                FeatureDAO.getEnabledFeatures(guild.toLong()).toTypedArray(),
+                data
             )
 
             call.respond(features)
@@ -106,13 +117,9 @@ fun Route.guild(jda: JDA) = route("/guild/{guild}") {
         val guildId = call.getGuild()
 
         verify(guildId) {
-            val guild = jda.getGuildById(guildId)
+            val detail = with(api) { getGuildDetail(guildId) }
 
-            if (guild == null) {
-                call.guildNotFound()
-            } else {
-                call.respond(ServerDetails(guild.memberCount))
-            }
+            call.respond(detail)
         }
     }
 
@@ -120,13 +127,9 @@ fun Route.guild(jda: JDA) = route("/guild/{guild}") {
         val guildId = call.getGuild()
 
         verify(guildId) {
-            val guild = jda.getGuildById(guildId)
+            val detail = with(api) { getGuildDetailAdvanced(guildId) }
 
-            if (guild == null) {
-                call.guildNotFound()
-            } else {
-                call.respond(ServerDetailsAdvanced(guild.memberCount))
-            }
+            call.respond(detail!!)
         }
     }
 
@@ -134,16 +137,7 @@ fun Route.guild(jda: JDA) = route("/guild/{guild}") {
         val guildId = call.getGuild()
 
         verify(guildId) {
-            val guild = jda.getGuildById(guildId)!!
-
-            val notifications = arrayOf(
-                Notification(
-                    "Good Job!",
-                    "Your server just got ${guild.memberCount} members",
-                    "https://avatars.githubusercontent.com/u/88699887?s=200&v=4"
-                ),
-                Notification("Good Job!", "Your server just got ${guild.memberCount} members")
-            )
+            val notifications = with(api) { getNotifications(guildId) }
 
             call.respond(notifications)
         }
@@ -187,13 +181,3 @@ operator fun ApplicationCall.get(vararg names: String): List<String> {
         parameters[it]!!
     }
 }
-
-@Serializable
-class ServerDetails(
-    val members: Int,
-)
-
-@Serializable
-class ServerDetailsAdvanced(
-    val members: Int,
-)
