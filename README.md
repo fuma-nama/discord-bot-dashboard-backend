@@ -1,3 +1,9 @@
+# D-Dash Backend
+
+See the [Frontend](https://github.com/SonMooSans/discord-bot-dashboard) Repository.
+
+Required Modals for your own implementation: [modals.kt](src/main/kotlin/com/bdash/api/models.kt)
+
 # Routes
 
 GET `login`: Redirects to oauth2 authorize url
