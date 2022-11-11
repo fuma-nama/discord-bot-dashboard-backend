@@ -2,7 +2,7 @@
 
 See the [Frontend](https://github.com/SonMooSans/discord-bot-dashboard) Repository.
 
-Required Modals for your own implementation: [modals.kt](src/main/kotlin/com/bdash/api/models.kt)
+Required Models for your own implementation: [models.kt](src/main/kotlin/com/bdash/api/models.kt)
 
 # Routes
 
