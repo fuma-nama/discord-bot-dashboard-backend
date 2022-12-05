@@ -1,29 +1,23 @@
 package net.sonmoosans.kbot
 
-import bjda.bjda
-import bjda.plugins.supercommand.supercommand
-import bjda.plugins.ui.uiEvent
-import bjda.wrapper.Mode
 import com.bdash.api.startServer
-import net.sonmoosans.kbot.command.TestCommands
+import net.dv8tion.jda.api.JDABuilder
 import net.sonmoosans.kbot.database.table.BotSettings
 import org.jetbrains.exposed.sql.Database
 import net.sonmoosans.kbot.database.table.actions.KillKane as KillKaneAction
 import net.sonmoosans.kbot.database.table.features.KillKane as KillKaneFeature
 
 suspend fun main() {
-    val bot = bjda(Mode.Default) {
-        config {
-            setToken(System.getenv("TOKEN"))
-        }
-        supercommand(
-            TestCommands
-        )
-        uiEvent()
-    }
+    val bot = JDABuilder.createDefault(System.getenv("TOKEN"))
+        .build()
+        .awaitReady()
 
     startServer {
         api = APIImpl()
+        jda = bot
+        host = "http://localhost:8080"
+        allowOrigin += "localhost:3000"
+        settings = BotSettings
 
         action(
             KillKaneAction
@@ -32,8 +26,6 @@ suspend fun main() {
         feature(
             KillKaneFeature
         )
-
-        settings = BotSettings
 
         connect = {
             val driverClassName = "org.postgresql.Driver"
@@ -47,9 +39,6 @@ suspend fun main() {
             )
         }
 
-        host = "http://localhost:8080"
-        allowHost += "localhost:3000"
-
         oauth = {
             clientId = System.getenv("CLIENT_ID")
             clientSecret = System.getenv("CLIENT_SECRET")
@@ -59,10 +48,6 @@ suspend fun main() {
         encrypt = {
             encryptKey = System.getenv("ENCRYPT_KEY")
             signKey = System.getenv("SIGN_KEY")
-        }
-
-        this.bot = {
-            jda = bot.jda
         }
     }
 }

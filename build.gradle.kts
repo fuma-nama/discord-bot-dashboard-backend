@@ -23,9 +23,7 @@ repositories {
 }
 
 dependencies {
-    //discord
-    implementation("io.github.sonmoosans:bjda:5.1.1")
-
+    implementation("net.dv8tion:JDA:5.0.0-beta.1")
     //client
     implementation("io.ktor:ktor-client-core:$ktor_version")
     implementation("io.ktor:ktor-client-cio:$ktor_version")

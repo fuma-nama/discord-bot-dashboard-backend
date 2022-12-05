@@ -1,7 +1,7 @@
 package com.bdash.api.discord
 
 import com.bdash.api.Guild
-import com.bdash.api.GuildExists
+import com.bdash.api.UserPrincipal
 import com.bdash.api.UserSession
 import com.bdash.api.httpClient
 import com.bdash.api.utils.toError
@@ -39,7 +39,7 @@ object DiscordApi {
     /**
      * @return false if not authenticated
      */
-    suspend fun checkToken(user: UserSession): Boolean {
+    suspend fun checkToken(user: UserPrincipal): Boolean {
         val result = httpClient.head(Routes.verify) {
             headers {
                 append(HttpHeaders.Authorization, "${user.token_type} ${user.token}")
@@ -47,26 +47,6 @@ object DiscordApi {
         }
 
         return result.status != HttpStatusCode.Unauthorized
-    }
-
-    suspend fun getGuildsExists(user: UserSession): List<GuildExists> {
-        val res = httpClient.get(Routes.guilds) {
-            headers {
-                append(HttpHeaders.Authorization, "${user.token_type} ${user.token}")
-            }
-        }
-
-        return if (res.status == HttpStatusCode.OK) {
-            val guilds = res.body<Array<GuildExists>>()
-
-            guilds.filter {
-                it.exist = jda.getGuildById(it.id) != null
-
-                it.owner ?: false
-            }
-        } else {
-            throw res.toError()
-        }
     }
 }
 

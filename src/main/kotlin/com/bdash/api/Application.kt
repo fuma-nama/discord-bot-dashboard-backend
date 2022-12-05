@@ -46,19 +46,19 @@ suspend fun startServer(init: Configuration.() -> Unit) {
     val config = Configuration().apply(init)
     val auth = OAuthBuilder().apply(config.oauth)
     val encrypt = EncryptBuilder().apply(config.encrypt)
-    val bot = BotBuilder().apply(config.bot)
+    val bot = config.jda
     val api = config.api
 
     embeddedServer(Netty, port = 8080) {
-        DiscordApi.init(bot.jda)
+        DiscordApi.init(bot)
         DatabaseFactory.init(config)
         configureSecurity()
-        configureRouting(auth, api)
+        configureRouting(auth, bot)
 
         install(CORS) {
             allowCredentials = true
 
-            for (host in config.allowHost) {
+            for (host in config.allowOrigin) {
                 allowHost(host)
             }
 
@@ -95,6 +95,15 @@ suspend fun startServer(init: Configuration.() -> Unit) {
         }
 
         install(Authentication) {
+            session<UserSession>("app") {
+                validate {
+                    UserPrincipal(it.token, it.token_type)
+                }
+
+                challenge {
+                    call.respond(HttpStatusCode.Unauthorized)
+                }
+            }
 
             oauth("discord-oauth2") {
                 urlProvider = { "${config.host}/callback" }
@@ -121,6 +130,7 @@ annotation class DslBuilder
 @DslBuilder
 class Configuration {
     lateinit var api: API
+    lateinit var jda: JDA
     val features = arrayListOf<Feature>()
     val actions = arrayListOf<Action>()
     lateinit var settings: Settings
@@ -138,7 +148,7 @@ class Configuration {
      */
     lateinit var host: String
 
-    val allowHost = arrayListOf<String>()
+    val allowOrigin = arrayListOf<String>()
 
     /**
      * Client origin
@@ -146,12 +156,6 @@ class Configuration {
     lateinit var connect: () -> Database
     lateinit var oauth: OAuthBuilder.() -> Unit
     lateinit var encrypt: EncryptBuilder.() -> Unit
-    lateinit var bot: BotBuilder.() -> Unit
-}
-
-@DslBuilder
-class BotBuilder {
-    lateinit var jda: JDA
 }
 
 @DslBuilder
@@ -173,3 +177,4 @@ class OAuthBuilder {
 }
 
 data class UserSession(val token: String, val token_type: String)
+data class UserPrincipal(val token: String, val token_type: String) : Principal

@@ -1,24 +1,29 @@
 package com.bdash.api.plugins
 
-import com.bdash.api.*
+import com.bdash.api.GuildInfo
+import com.bdash.api.OAuthBuilder
+import com.bdash.api.UserPrincipal
+import com.bdash.api.UserSession
 import com.bdash.api.database.dao.FeatureDAO
-import com.bdash.api.database.dao.SettingsDAO
 import com.bdash.api.discord.DiscordApi
-import com.bdash.api.discord.Routes
-import com.bdash.api.plugins.routes.actions
-import com.bdash.api.plugins.routes.features
-import com.bdash.api.utils.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNull
+import net.dv8tion.jda.api.JDA
 
-fun Application.configureRouting(oauth: OAuthBuilder, api: API) {
+@Serializable
+data class GuildInfoImpl(
+    val members: Int,
+    val status: String,
+    override val enabledFeatures: List<String>,
+) : GuildInfo
+
+fun Application.configureRouting(oauth: OAuthBuilder, bot: JDA) {
 
     routing {
         authenticate("discord-oauth2") {
@@ -37,143 +42,43 @@ fun Application.configureRouting(oauth: OAuthBuilder, api: API) {
             }
         }
 
-        get("/guilds") {
-            withSession { session ->
-                val guilds = DiscordApi.getGuildsExists(session)
+        authenticate("app") {
+            get("/guilds/{id}") {
+                //check permissions (optional)
+                val principal = call.principal<UserPrincipal>()!!
 
-                call.respond(guilds)
+                val guild = call.parameters["id"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest)
+                val data = bot.getGuildById(guild)
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, message = JsonNull)
+
+                call.respond(
+                    GuildInfoImpl(
+                        members = data.memberCount,
+                        enabledFeatures = FeatureDAO.getEnabledFeatures(guild),
+                        status = "Nice"
+                    )
+                )
             }
-        }
 
-        get("/users/@me") {
-            withSession { session ->
-                val user = httpClient.get(Routes.user) {
-                    headers {
-                        append(HttpHeaders.Authorization, "${session.token_type} ${session.token}")
-                    }
-                }.bodyAsText()
+            //Get discord oauth2 access token if logged in, otherwise respond 401
+            get("/auth") {
+                val principal = call.principal<UserPrincipal>()!!
 
-                call.respondText(user)
+                if (DiscordApi.checkToken(principal)) {
+                    call.respond(HttpStatusCode.OK, principal.token)
+                } else {
+                    call.respond(HttpStatusCode.Unauthorized)
+                }
             }
-        }
 
-        head("/auth") {
-            verify {
+            post("/auth/signout") {
+                call.sessions.clear<UserSession>()
+
                 call.response.status(HttpStatusCode.OK)
             }
         }
-
-        post("/auth/signout") {
-            call.sessions.clear<UserSession>()
-
-            call.response.status(HttpStatusCode.OK)
-        }
-
-        guild(api)
     }
-}
-
-fun Route.guild(api: API) = route("/guild/{guild}") {
-    get {
-        val id = call.parameters["guild"]!!
-
-        withSession { session ->
-            val guild = DiscordApi.getGuild(session, id)
-
-            if (guild == null) {
-                call.guildNotFound()
-            } else {
-                call.respond(guild)
-            }
-        }
-    }
-
-    get("/actions") {
-        val guild = call.getGuild()
-
-        verify(guild) {
-            val data = with(api) { getActionsData(guild) }
-
-            if (data != null)
-                call.respond(data)
-        }
-    }
-
-    get("/features") {
-        val guild = call.getGuild()
-
-        verify(guild) {
-            val data = with(api) { getFeaturesData(guild) }
-            val features = Features(
-                FeatureDAO.getEnabledFeatures(guild.toLong()).toTypedArray(),
-                data
-            )
-
-            call.respond(features)
-        }
-    }
-
-    get("/detail") {
-        val guildId = call.getGuild()
-
-        verify(guildId) {
-            val detail = with(api) { getGuildDetail(guildId) }
-
-            call.respond(detail)
-        }
-    }
-
-    get("/detail/advanced") {
-        val guildId = call.getGuild()
-
-        verify(guildId) {
-            val detail = with(api) { getGuildDetailAdvanced(guildId) }
-
-            call.respond(detail!!)
-        }
-    }
-
-    get("/notification") {
-        val guildId = call.getGuild()
-
-        verify(guildId) {
-            val notifications = with(api) { getNotifications(guildId) }
-
-            call.respond(notifications)
-        }
-    }
-
-    get("/settings") {
-        val guild = call.parameters["guild"]!!
-
-        verify(guild) {
-            val options = SettingsDAO.getSettingOptions(guild.toLong())
-
-            if (options == null) {
-                call.guildNotFound()
-            } else {
-                val settings = Settings(
-                    options.toJsonObject()
-                )
-
-                call.respond(settings)
-            }
-        }
-    }
-
-    patch<JsonObject>("/settings") { options ->
-        val guild = call.parameters["guild"]!!
-
-        verify(guild) {
-
-            val updated = SettingsDAO.editSettings(guild.toLong(), options)
-
-            call.respond(updated.toJsonObject())
-        }
-    }
-
-    features()
-    actions()
 }
 
 operator fun ApplicationCall.get(vararg names: String): List<String> {

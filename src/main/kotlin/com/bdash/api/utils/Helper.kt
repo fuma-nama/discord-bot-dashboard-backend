@@ -38,14 +38,6 @@ suspend fun ApplicationCall.actionNotFound() {
     respond(HttpStatusCode.NotFound, "Action Id doesn't exists")
 }
 
-suspend inline fun PipelineContext<Unit, ApplicationCall>.verify(onSuccess: () -> Unit) = withSession {
-    if (DiscordApi.checkToken(it)) {
-        onSuccess()
-    } else {
-        call.respond(HttpStatusCode.Unauthorized, "Not authorized")
-    }
-}
-
 suspend inline fun PipelineContext<Unit, ApplicationCall>.verify(guildId: String, onSuccess: () -> Unit) = withSession {
     val guild = DiscordApi.getGuild(it, guildId) ?: return@withSession
 
