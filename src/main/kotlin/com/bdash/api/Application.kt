@@ -131,15 +131,15 @@ annotation class DslBuilder
 class Configuration {
     lateinit var api: API
     lateinit var jda: JDA
-    val features = arrayListOf<Feature>()
+    val features = arrayListOf<Feature<*>>()
     val actions = arrayListOf<Action>()
-    lateinit var settings: Settings
+    lateinit var settings: Settings<*>
 
     fun action(vararg actions: Action) {
         this.actions.addAll(actions)
     }
 
-    fun feature(vararg features: Feature) {
+    fun feature(vararg features: Feature<*>) {
         this.features.addAll(features)
     }
 

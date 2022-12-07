@@ -3,26 +3,24 @@ package com.bdash.api.database.dao
 import com.bdash.api.database.DatabaseFactory.dbQuery
 import com.bdash.api.database.utils.Feature
 import com.bdash.api.database.utils.OptionsContainer
-import com.bdash.api.database.utils.OptionsContainerDAO
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.response.*
-import io.ktor.util.pipeline.*
+import com.bdash.api.database.utils.getOptions
+import com.bdash.api.database.utils.updateOptions
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.select
 
-object FeatureDAO : OptionsContainerDAO {
-    val features = hashMapOf<String, Feature>()
+object FeatureDAO {
+    private val features = hashMapOf<String, Feature<*>>()
 
-    fun register(features: List<Feature>) {
+    fun register(features: List<Feature<*>>) {
         for (feature in features) {
             this.features[feature.id] = feature
         }
     }
 
-    suspend fun getFeature(guild: Long, featureId: String): Map<String, JsonElement>? {
+    suspend fun getFeature(guild: Long, featureId: String): Any? {
+
         return features[featureId]?.getOptions(guild)
     }
 
@@ -36,7 +34,7 @@ object FeatureDAO : OptionsContainerDAO {
         feature?.setFeatureEnabled(guild, enabled)
     }
 
-    private suspend fun OptionsContainer.setFeatureEnabled(guild: Long, enabled: Boolean) = dbQuery {
+    private suspend fun OptionsContainer<*>.setFeatureEnabled(guild: Long, enabled: Boolean) = dbQuery {
         val feature = this
 
         if (enabled) {
@@ -67,14 +65,7 @@ object FeatureDAO : OptionsContainerDAO {
     /**
      * @return Updated Option Values
      */
-    suspend fun PipelineContext<*, ApplicationCall>.updateFeatureOptions(guild: Long, featureId: String) {
-        val feature = features[featureId]
-
-        if (feature == null) {
-            call.respondText("Feature Id doesn't exists", status = HttpStatusCode.NotFound)
-            return
-        }
-
-        updateOptions(guild, feature)
+    suspend fun updateFeatureOptions(guild: Long, featureId: String, options: JsonElement): Any? {
+        return features[featureId]?.updateOptions(guild, options)
     }
 }
