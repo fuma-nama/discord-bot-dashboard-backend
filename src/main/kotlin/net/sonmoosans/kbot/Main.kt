@@ -5,7 +5,7 @@ import net.dv8tion.jda.api.JDABuilder
 import net.sonmoosans.kbot.database.table.BotSettings
 import org.jetbrains.exposed.sql.Database
 import net.sonmoosans.kbot.database.table.actions.KillKane as KillKaneAction
-import net.sonmoosans.kbot.database.table.features.KillKane as KillKaneFeature
+import net.sonmoosans.kbot.database.table.features.Music as KillKaneFeature
 
 suspend fun main() {
     val bot = JDABuilder.createDefault(System.getenv("TOKEN"))

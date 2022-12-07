@@ -26,17 +26,14 @@ object FeatureDAO : OptionsContainerDAO {
         return features[featureId]?.getOptions(guild)
     }
 
-    suspend fun PipelineContext<*, ApplicationCall>.setFeatureEnabled(
+    suspend fun setFeatureEnabled(
         guild: Long,
         featureId: String,
         enabled: Boolean,
     ) {
-
         val feature = features[featureId]
-            ?: return call.respondText("Request Id doesn't exists", status = HttpStatusCode.NotFound)
 
-        feature.setFeatureEnabled(guild, enabled)
-        call.respond(HttpStatusCode.OK)
+        feature?.setFeatureEnabled(guild, enabled)
     }
 
     private suspend fun OptionsContainer.setFeatureEnabled(guild: Long, enabled: Boolean) = dbQuery {

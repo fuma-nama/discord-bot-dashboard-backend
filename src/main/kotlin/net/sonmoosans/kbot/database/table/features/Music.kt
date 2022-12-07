@@ -10,8 +10,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.jetbrains.exposed.sql.ResultRow
 
-object KillKane : Feature("feature_kill_kane") {
-    override val id = "auto_kill_kane"
+object Music : Feature("music") {
+    override val id = "music"
 
     /**
      * Message to send after killing Kane

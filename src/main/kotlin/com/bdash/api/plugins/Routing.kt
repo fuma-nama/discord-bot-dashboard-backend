@@ -4,8 +4,8 @@ import com.bdash.api.GuildInfo
 import com.bdash.api.OAuthBuilder
 import com.bdash.api.UserPrincipal
 import com.bdash.api.UserSession
-import com.bdash.api.database.dao.FeatureDAO
 import com.bdash.api.discord.DiscordApi
+import com.bdash.api.plugins.routes.guildRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -13,7 +13,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonNull
 import net.dv8tion.jda.api.JDA
 
 @Serializable
@@ -43,23 +42,7 @@ fun Application.configureRouting(oauth: OAuthBuilder, bot: JDA) {
         }
 
         authenticate("app") {
-            get("/guilds/{id}") {
-                //check permissions (optional)
-                val principal = call.principal<UserPrincipal>()!!
-
-                val guild = call.parameters["id"]?.toLongOrNull()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest)
-                val data = bot.getGuildById(guild)
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, message = JsonNull)
-
-                call.respond(
-                    GuildInfoImpl(
-                        members = data.memberCount,
-                        enabledFeatures = FeatureDAO.getEnabledFeatures(guild),
-                        status = "Nice"
-                    )
-                )
-            }
+            guildRoutes(bot)
 
             //Get discord oauth2 access token if logged in, otherwise respond 401
             get("/auth") {
