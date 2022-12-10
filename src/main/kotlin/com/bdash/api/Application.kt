@@ -6,7 +6,6 @@ import com.bdash.api.database.utils.Feature
 import com.bdash.api.database.utils.Settings
 import com.bdash.api.discord.DiscordApi
 import com.bdash.api.plugins.configureRouting
-import com.bdash.api.plugins.configureSecurity
 import com.bdash.api.utils.APIException
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -52,7 +51,6 @@ suspend fun startServer(init: Configuration.() -> Unit) {
     embeddedServer(Netty, port = 8080) {
         DiscordApi.init(bot)
         DatabaseFactory.init(config)
-        configureSecurity()
         configureRouting(auth, bot)
 
         install(CORS) {

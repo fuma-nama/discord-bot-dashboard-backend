@@ -1,5 +1,6 @@
 package com.bdash.api.plugins.routes
 
+import com.bdash.api.RoleObject
 import com.bdash.api.UserPrincipal
 import com.bdash.api.database.dao.FeatureDAO
 import com.bdash.api.plugins.GuildInfoImpl
@@ -31,6 +32,15 @@ fun Route.guildRoutes(bot: JDA) = route("/guilds/{guild}") {
                 status = "Nice"
             )
         )
+    }
+
+    get("/roles") {
+        val guild = call.guild()
+            ?: return@get call.respond(HttpStatusCode.BadRequest)
+        val data = bot.getGuildById(guild)
+            ?: return@get call.respond(HttpStatusCode.BadRequest, message = JsonNull)
+
+        call.respond(data.roles.map { RoleObject(it) })
     }
 
     route("/features/{feature}") {

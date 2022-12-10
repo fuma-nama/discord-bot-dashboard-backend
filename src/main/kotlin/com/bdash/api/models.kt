@@ -2,8 +2,9 @@ package com.bdash.api
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import net.dv8tion.jda.api.entities.Role
+import net.dv8tion.jda.api.entities.RoleIcon
 
 @Serializable
 data class Guild(
@@ -33,6 +34,30 @@ data class Guild(
     val permissions: String? = null,
 )
 
+@Serializable
+data class RoleObject(
+    val id: String,
+    val name: String,
+    val color: Int,
+    val position: Int,
+    val icon: RoleIconObject?,
+) {
+    constructor(role: Role) : this(
+        role.id,
+        role.name,
+        role.colorRaw,
+        role.position,
+        role.icon?.let { RoleIconObject(it) })
+}
+
+@Serializable
+data class RoleIconObject(
+    val iconUrl: String?,
+    val emoji: String?,
+) {
+    constructor(icon: RoleIcon) : this(icon.iconUrl, icon.emoji)
+}
+
 /**
  * Guild info, it is customizable
  *
@@ -44,22 +69,6 @@ interface GuildInfo {
      */
     val enabledFeatures: List<String>
 }
-
-@Serializable
-class Notification(
-    val title: String,
-    val description: String,
-    val image: String? = null,
-)
-
-@Serializable
-class Features(val enabled: Array<String>, val data: JsonElement? = null)
-
-@Serializable
-class Feature(val values: JsonObject)
-
-@Serializable
-class Settings(val values: JsonObject)
 
 @Serializable
 class TaskBody(
