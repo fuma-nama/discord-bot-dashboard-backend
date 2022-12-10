@@ -5,6 +5,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import net.dv8tion.jda.api.entities.Role
 import net.dv8tion.jda.api.entities.RoleIcon
+import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel
 
 @Serializable
 data class Guild(
@@ -56,6 +58,18 @@ data class RoleIconObject(
     val emoji: String?,
 ) {
     constructor(icon: RoleIcon) : this(icon.iconUrl, icon.emoji)
+}
+
+@Serializable
+data class ChannelObject(
+    val id: String, val name: String, val type: Int, val category: String?,
+) {
+    constructor(channel: GuildChannel) : this(
+        channel.id,
+        channel.name,
+        channel.type.id,
+        if (channel is ICategorizableChannel) channel.parentCategoryId else null
+    )
 }
 
 /**
